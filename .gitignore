@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+
+# 发票文件（按月份目录）
+20*/
+
+# 日志文件
+*.log
+invoice_log.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+ENV/
