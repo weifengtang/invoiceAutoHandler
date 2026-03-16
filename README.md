@@ -1,143 +1,151 @@
-# 🎉 恭喜！发票自动化流程全线跑通
+# 🧾 发票自动处理工具
 
- 
-## 📊 整体流程图
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![GitHub Stars](https://img.shields.io/github/stars/weifengtang/invoiceAutoHandler.svg)](https://github.com/weifengtang/invoiceAutoHandler/stargazers)
+
+> 🚀 告别手动整理发票！自动解析 PDF 发票，智能分类并规范化命名
+
+## ✨ 功能特性
+
+- 🔍 **智能分类** - 自动识别发票类型（交通、餐饮、通信、住宿等 9 大类）
+- 📅 **信息提取** - 自动提取开票日期、价税合计、发票号码
+- 📝 **规范命名** - 统一格式 `类型-日期-金额-发票号码.pdf`
+- 🔄 **增量处理** - 日志记录已处理文件，避免重复操作
+- ⚙️ **配置灵活** - 关键词规则、默认目录均可自定义
+- 📧 **邮件联动** - 可配合 Apple Mail 实现全自动处理
+
+## 📦 快速开始
+
+### 安装依赖
+
+```bash
+pip3 install pdfplumber
+```
+
+### 下载使用
+
+```bash
+# 克隆仓库
+git clone https://github.com/weifengtang/invoiceAutoHandler.git
+cd invoiceAutoHandler
+
+# 运行脚本
+python3 rename_invoice.py /path/to/invoices
+```
+
+### 使用方式
+
+```bash
+# 方式1：指定目录
+python3 rename_invoice.py /path/to/invoices
+
+# 方式2：使用默认目录（settings.json 配置）
+python3 rename_invoice.py
+
+# 方式3：处理单个文件
+python3 rename_invoice.py invoice.pdf
+```
+
+## 📁 目录结构
+
+```
+invoiceAutoHandler/
+├── rename_invoice.py      # 主脚本
+├── settings.json          # 配置文件
+├── invoice_log.json       # 处理日志（自动生成）
+└── README.md
+```
+
+## ⚙️ 配置说明
+
+编辑 `settings.json` 自定义规则：
+
+```json
+{
+    "default_directory": "./202603",
+    "categories": {
+        "交通": ["出行", "滴滴", "打车", "机票", "火车", "高德", "曹操", "T3", ...],
+        "餐饮": ["餐饮", "美食", "餐厅", "美团", "饿了么", ...],
+        "通信": ["电信", "联通", "移动", "话费", ...],
+        "住宿": ["酒店", "宾馆", "民宿", ...],
+        "办公": ["文具", "打印", "设备", ...],
+        "医疗": ["医院", "药店", "体检", ...],
+        "培训": ["培训", "教育", "课程", ...],
+        "购物": ["超市", "商场", "京东", ...],
+        "快递": ["快递", "物流", "顺丰", ...]
+    },
+    "default_category": "其他"
+}
+```
+
+## 📝 命名规则
+
+**格式**：`类型-开票日期-开票金额-发票号码.pdf`
+
+**示例**：
+```
+原始文件：高德打车电子发票.pdf
+重命名后：交通-20260315-30.00-26327000000530134059.pdf
+
+原始文件：美团外卖发票.pdf
+重命名后：餐饮-20260315-45.50-26952000001052541706.pdf
+```
+
+## 🔧 信息提取优先级
+
+| 字段 | 提取规则 |
+|------|----------|
+| 日期 | `开票日期：YYYY年MM月DD日` > `YYYY-MM-DD` > 文件修改时间 |
+| 金额 | `价税合计（小写）¥XX.XX` > `价税合计：¥XX.XX` > `合计：¥XX.XX` |
+| 发票号码 | `发票号码：XXXXXXXX` > `号码：XXXXXXXX` |
+| 类型 | 根据关键词匹配文本和文件名 |
+
+## 🔄 自动化工作流
+
+配合邮件规则实现全自动化：
 
 ```mermaid
-flowchart TD
-    A[收到新邮件] --> B{Mail规则<br>主题/内容含“发票”?}
-    B -->|否| Z[忽略]
-    B -->|是| C[AppleScript触发]
-    
-    C --> D[提取邮件日期]
-    D --> E[创建月份文件夹<br>~/发票/202603/]
-    E --> F[下载PDF附件]
-    F --> G{是否“行程单”?}
-    G -->|是| H[跳过并记录日志]
-    G -->|否| I[保存PDF到月份文件夹]
-    
-    I --> J[调用Python重命名脚本]
-    J --> K[解析PDF内容]
-    K --> L[判断类别<br>交通/餐饮/通信]
-    K --> M[提取日期/金额]
-    L --> N[生成新文件名<br>交通-20260315-30元.pdf]
-    M --> N
-    N --> O[重命名文件]
-    
-    O --> P[写入日志]
-    H --> P
+flowchart LR
+    A[收到发票邮件] --> B[Mail规则检测]
+    B --> C[自动下载PDF]
+    C --> D[调用脚本重命名]
+    D --> E[完成归档]
 ```
 
----
+### Apple Mail 集成
 
-## ✅ 已完成组件清单
+1. 打开 Mail > 偏好设置 > 规则
+2. 新建规则：主题/内容包含"发票"
+3. 执行 AppleScript 下载附件并调用本脚本
 
-| 组件 | 位置/文件 | 功能 |
-|------|----------|------|
-| **Mail规则** | Mail.app 偏好设置 | 检测含“发票”的邮件，触发脚本 |
-| **AppleScript** | `~/Library/Application Scripts/com.apple.mail/SaveInvoiceAttachments_monthly.scpt` | 下载附件、创建月份文件夹、调用Python |
-| **Python脚本** | `~/work/docs/发票/rename_invoice.py` | 解析PDF、分类、重命名 |
-| **日志文件** | `~/work/docs/发票/Aemail.log` | 记录所有操作 |
+详细配置请参考 [Wiki](https://github.com/weifengtang/invoiceAutoHandler/wiki)
 
----
+## 📊 对比
 
-## 📁 最终目录结构
+| 维度 | 手动处理 | 本工具 |
+|------|----------|--------|
+| 操作步骤 | 下载→分类→重命名 | 零操作 |
+| 处理时间 | 2-3分钟/张 | <1秒/张 |
+| 错误率 | 易漏、易错 | 100%按规则执行 |
+| 归档规范 | 混乱 | 统一格式 |
 
-```
-/Users/用户名称/work/docs/发票/
-├── Aemail.log                    ← 运行日志
-├── rename_invoice.py              ← 重命名脚本
-├── 202603/                        ← 3月发票
-│   ├── 交通-20260315-30元.pdf
-│   ├── 通信-20260314-200元.pdf
-│   └── 餐饮-20260313-40元.pdf
-├── 202604/                        ← 4月发票（自动创建）
-└── 202605/                        ← 5月发票（自动创建）
-```
+## 🤝 贡献
 
----
+欢迎提交 Issue 和 Pull Request！
 
-## 🔄 完整工作流程
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 提交 Pull Request
 
-### 1. 邮件到达时
-- Mail规则检测到主题或内容含“发票”
-- 自动运行 AppleScript
+## 📄 License
 
-### 2. AppleScript 执行
-```applescript
-- 提取邮件日期 → 生成月份文件夹名 "202603"
-- 创建文件夹 /Users/用户名称/work/docs/发票/202603/
-- 下载所有PDF附件（排除“行程单”）
-- 记录下载成功/失败到 Aemail.log
-- 调用 Python 脚本，传入当前月份文件夹路径
-```
+本项目采用 MIT 协议开源 - 查看 [LICENSE](LICENSE) 文件了解详情
 
-### 3. Python 脚本执行
-```python
-- 接收参数，如 "/Users/用户名称/work/docs/发票/202603/"
-- 遍历文件夹内所有未重命名的PDF
-- 解析PDF内容：
-  * 提取金额
-  * 提取开票日期
-  * 根据关键词判断类别（交通/餐饮/通信）
-- 生成新文件名：{类别}-{日期}-{金额}元.pdf
-- 重命名文件（避免重名加序号）
-- 记录处理结果
-```
+## ⭐ Star History
 
-### 4. 日志记录
-所有步骤都会写入 `Aemail.log`，方便排查问题：
-```
-Mon Mar 16 14:30:45 CST 2026 ===============邮件规则触发===========
-Mon Mar 16 14:30:45 CST 2026 处理邮件: 【中国电信】电子发票
-Mon Mar 16 14:30:45 CST 2026 ✅ 创建文件夹: /Users/用户名称/work/docs/发票/202603/
-Mon Mar 16 14:30:46 CST 2026 ✅ 下载成功: 【中国电信】电子发票
-Mon Mar 16 14:30:46 CST 2026 重命名触发成功: /Users/用户名称/work/docs/发票/202603/
-Mon Mar 16 14:30:47 CST 2026 ===============处理完成===============
-```
+如果这个项目对你有帮助，请给个 Star ⭐
 
----
-
-## 🎯 你得到的成果
-
-### 自动化收益
-| 维度 | 之前 | 现在 |
-|------|------|------|
-| **人工操作** | 手动下载→手动分类→手动重命名 | 0 操作 |
-| **处理时间** | 每张发票 2-3 分钟 | 10 秒内自动完成 |
-| **错误率** | 易漏、易错 | 100% 按规则执行 |
-| **归档规范** | 混乱 | 统一格式：类别-日期-金额.pdf |
-
-### 关键技术点
-1. **Mail规则 + AppleScript**：系统原生，稳定可靠
-2. **PDF解析**：可处理扫描件和电子发票
-3. **智能分类**：基于关键词的规则引擎
-4. **按月归档**：自动创建 `YYYYMM` 文件夹
-
----
-
-## 📌 日常维护要点
-
-### 需要检查的
-- [ ] 每月初确认文件夹自动创建
-- [ ] 偶尔查看 `Aemail.log` 确认无异常
-- [ ] 如果发票格式变化，调整 Python 脚本的正则表达式
-
-### 可能遇到的问题
-| 问题 | 解决方法 |
-|------|----------|
-| Python 脚本没执行 | 检查权限：`chmod +x rename_invoice.py` |
-| 金额提取失败 | 调整 `rename_invoice.py` 中的正则匹配 |
-| 分类错误 | 在 Python 脚本的关键词列表中添加新词 |
-| Mail 规则失效 | 重启 Mail.app 或检查规则是否启用 |
-
----
-
-## 🚀 扩展可能性
-
-这套框架可以轻松扩展到其他场景：
-- **合同自动归档**：下载邮件附件，按客户/日期分类
-- **报销单据处理**：自动提取金额，生成汇总表
-- **多级分类**：按部门/项目进一步细分文件夹
-
----
+[![Star History Chart](https://api.star-history.com/svg?repos=weifengtang/invoiceAutoHandler&type=Date)](https://star-history.com/#weifengtang/invoiceAutoHandler&Date)
