@@ -54,6 +54,7 @@ invoiceAutoHandler/
 ├── rename_invoice.py      # 主脚本
 ├── settings.json          # 配置文件
 ├── invoice_log.json       # 处理日志（自动生成）
+├── images/                # 文档图片
 └── README.md
 ```
 
@@ -79,6 +80,14 @@ invoiceAutoHandler/
 }
 ```
 
+### 添加新分类
+
+在 `categories` 中添加：
+
+```json
+"新分类": ["关键词1", "关键词2", "关键词3"]
+```
+
 ## 📝 命名规则
 
 **格式**：`类型-开票日期-开票金额-发票号码.pdf`
@@ -90,6 +99,9 @@ invoiceAutoHandler/
 
 原始文件：美团外卖发票.pdf
 重命名后：餐饮-20260315-45.50-26952000001052541706.pdf
+
+原始文件：中国电信电子发票.pdf
+重命名后：通信-20260315-129.00-26957000000082608426.pdf
 ```
 
 ## 🔧 信息提取优先级
@@ -115,13 +127,32 @@ flowchart LR
 
 ### Apple Mail 集成
 
-1. 打开 Mail > 偏好设置 > 规则
+1. 打开 **Mail > 偏好设置 > 规则**
 2. 新建规则：主题/内容包含"发票"
 3. 执行 AppleScript 下载附件并调用本脚本
 
-详细配置请参考 [Wiki](https://github.com/weifengtang/invoiceAutoHandler/wiki)
+#### AppleScript 示例
 
-## 📊 对比
+```applescript
+-- 创建月份文件夹
+set basePath to "/Users/yourname/Documents/发票/"
+set targetFolder to basePath & yearStr & monthStr & "/"
+
+-- 下载PDF附件（排除行程单）
+repeat with theAttachment in mail attachments
+    set attName to name of theAttachment
+    if attName ends with ".pdf" and attName does not contain "行程单" then
+        save theAttachment in (targetFolder & attName as POSIX file)
+    end if
+end repeat
+
+-- 调用Python脚本
+do shell script "/path/to/rename_invoice.py " & quoted form of targetFolder
+```
+
+![AppleScript 配置示意](images/appleScript脚本.png)
+
+## 📊 效果对比
 
 | 维度 | 手动处理 | 本工具 |
 |------|----------|--------|
@@ -129,6 +160,15 @@ flowchart LR
 | 处理时间 | 2-3分钟/张 | <1秒/张 |
 | 错误率 | 易漏、易错 | 100%按规则执行 |
 | 归档规范 | 混乱 | 统一格式 |
+
+## 🛠️ 常见问题
+
+| 问题 | 解决方法 |
+|------|----------|
+| 金额提取失败 | 检查发票格式，调整正则表达式 |
+| 分类错误 | 在 `settings.json` 中补充关键词 |
+| 重复处理 | 删除 `invoice_log.json` 重新处理 |
+| Python 脚本没执行 | 检查权限：`chmod +x rename_invoice.py` |
 
 ## 🤝 贡献
 
@@ -149,3 +189,7 @@ flowchart LR
 如果这个项目对你有帮助，请给个 Star ⭐
 
 [![Star History Chart](https://api.star-history.com/svg?repos=weifengtang/invoiceAutoHandler&type=Date)](https://star-history.com/#weifengtang/invoiceAutoHandler&Date)
+
+---
+
+<p align="center">Made with ❤️ by <a href="https://github.com/weifengtang">weifengtang</a></p>
